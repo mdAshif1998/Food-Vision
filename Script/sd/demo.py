@@ -7,17 +7,18 @@ import torch
 
 DEVICE = "cpu"
 
-ALLOW_CUDA = True
+ALLOW_CUDA = False
 ALLOW_MPS = False
 
 if torch.cuda.is_available() and ALLOW_CUDA:
     DEVICE = "cuda"
-elif (torch.has_mps or torch.backends.mps.is_available()) and ALLOW_MPS:
+
+elif (torch.backends.mps.is_built() or torch.backends.mps.is_available()) and ALLOW_MPS:
     DEVICE = "mps"
 print(f"Using device: {DEVICE}")
 
 tokenizer = CLIPTokenizer("D:/DDPM/Food-Vision/data/tokenizer_vocab.json", merges_file="D:/DDPM/Food-Vision/data/tokenizer_merges.txt")
-model_file = "D:/DDPM/Food-Vision/data/v1-5-pruned-emaonly.ckpt"
+model_file = "D:/DDPM/Food-Vision/data/v1-5-pruned-ema_only.ckpt"
 models = model_loader.preload_models_from_standard_weights(model_file, DEVICE)
 
 # TEXT TO IMAGE
@@ -47,7 +48,7 @@ seed = 42
 
 output_image = pipeline.generate(
     prompt=prompt,
-    uncond_prompt=unconditional_prompt,
+    unconditional_prompt=unconditional_prompt,
     input_image=input_image,
     strength=strength,
     do_cfg=do_cfg,

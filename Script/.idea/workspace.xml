@@ -2,22 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8928a351-4212-4264-aad6-c1e10c5e94df" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/sd/add_noise.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sd/ddpm.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sd/demo.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sd/model_converter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sd/model_loader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/sd/pipeline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/attention.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/sd/clip.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/clip.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sd/decoder.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/decoder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sd/diffusion.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/diffusion.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sd/encoder.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/encoder.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sd/pipe_line.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sd/ddpm.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/ddpm.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sd/demo.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/demo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sd/pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/sd/pipeline.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,11 +25,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">
-    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
-    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "last_opened_file_path": "D:/DDPM/Food-Vision/Script",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  }
+}]]></component>
   <component name="RunManager">
     <configuration name="demo" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="Script" />
@@ -105,7 +97,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/sd/demo.py</url>
-          <line>20</line>
+          <line>21</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -114,9 +106,9 @@
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/sd/demo.py</url>
-          <line>47</line>
-          <option name="timeStamp" value="9" />
+          <url>file://$PROJECT_DIR$/sd/model_converter.py</url>
+          <line>5</line>
+          <option name="timeStamp" value="10" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
