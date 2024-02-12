@@ -3,6 +3,36 @@ from torch import nn
 from torch.nn import functional as F
 from attention import SelfAttention, CrossAttention
 
+
+class EMA:
+    def __init__(self, beta):
+        super().__init__()
+        self.beta = beta
+        self.step = 0
+
+    def update_model_average(self, ma_model, current_model):
+        for current_params, ma_params in zip(current_model.parameters(), ma_model.parameters()):
+            old_weight, up_weight = ma_params.data, current_params.data
+            ma_params.data = self.update_average(old_weight, up_weight)
+
+    def update_average(self, old, new):
+        if old is None:
+            return new
+        return old * self.beta + (1 - self.beta) * new
+
+    def step_ema(self, ema_model, model, step_start_ema=2000):
+        if self.step < step_start_ema:
+            self.reset_parameters(ema_model, model)
+            self.step += 1
+            return
+        self.update_model_average(ema_model, model)
+        self.step += 1
+
+    @staticmethod
+    def reset_parameters(ema_model, model):
+        ema_model.load_state_dict(model.state_dict())
+
+
 class TimeEmbedding(nn.Module):
     def __init__(self, n_embd):
         super().__init__()
@@ -22,6 +52,7 @@ class TimeEmbedding(nn.Module):
         x = self.linear_2(x)
 
         return x
+
 
 class UNET_ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels, n_time=1280):
@@ -74,6 +105,7 @@ class UNET_ResidualBlock(nn.Module):
         
         # (Batch_Size, Out_Channels, Height, Width) + (Batch_Size, Out_Channels, Height, Width) -> (Batch_Size, Out_Channels, Height, Width)
         return merged + self.residual_layer(residue)
+
 
 class UNET_AttentionBlock(nn.Module):
     def __init__(self, n_head: int, n_embd: int, d_context=768):
@@ -172,6 +204,7 @@ class UNET_AttentionBlock(nn.Module):
         # (Batch_Size, Features, Height, Width) + (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height, Width)
         return self.conv_output(x) + residue_long
 
+
 class Upsample(nn.Module):
     def __init__(self, channels):
         super().__init__()
@@ -181,6 +214,7 @@ class Upsample(nn.Module):
         # (Batch_Size, Features, Height, Width) -> (Batch_Size, Features, Height * 2, Width * 2)
         x = F.interpolate(x, scale_factor=2, mode='nearest') 
         return self.conv(x)
+
 
 class SwitchSequential(nn.Sequential):
     def forward(self, x, context, time):
@@ -192,6 +226,7 @@ class SwitchSequential(nn.Sequential):
             else:
                 x = layer(x)
         return x
+
 
 class UNET(nn.Module):
     def __init__(self):
@@ -324,6 +359,7 @@ class UNET_OutputLayer(nn.Module):
         # (Batch_Size, 4, Height / 8, Width / 8) 
         return x
 
+
 class Diffusion(nn.Module):
     def __init__(self):
         super().__init__()
@@ -347,3 +383,5 @@ class Diffusion(nn.Module):
         
         # (Batch, 4, Height / 8, Width / 8)
         return output
+
+

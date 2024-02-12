@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm import tqdm
 
 
 class DDPMSampler:
@@ -23,12 +24,14 @@ class DDPMSampler:
         self.num_inference_steps = num_inference_steps
         step_ratio = self.num_train_time_steps // self.num_inference_steps
         time_steps = (np.arange(0, num_inference_steps) * step_ratio).round()[::-1].copy().astype(np.int64)
-        self.time_steps = torch.from_numpy(time_steps)
+        time_steps = torch.from_numpy(time_steps)
+        self.time_steps = time_steps
+        return time_steps
 
     def _get_previous_timestep(self, timestep: int) -> int:
         prev_t = timestep - self.num_train_time_steps // self.num_inference_steps
         return prev_t
-    
+
     def _get_variance(self, timestep: int) -> torch.Tensor:
         prev_t = self._get_previous_timestep(timestep)
 
@@ -45,17 +48,6 @@ class DDPMSampler:
         variance = torch.clamp(variance, min=1e-20)
 
         return variance
-    
-    def set_strength(self, strength=1):
-        """
-            Set how much noise to add to the input image. 
-            More noise (strength ~ 1) means that the output will be further from the input image.
-            Less noise (strength ~ 0) means that the output will be closer to the input image.
-        """
-        # start_step is the number of noise levels to skip
-        start_step = self.num_inference_steps - int(self.num_inference_steps * strength)
-        self.time_steps = self.time_steps[start_step:]
-        self.start_step = start_step
 
     def step(self, timestep: int, latents: torch.Tensor, model_output: torch.Tensor):
         t = timestep
@@ -89,14 +81,14 @@ class DDPMSampler:
             noise = torch.randn(model_output.shape, generator=self.generator, device=device, dtype=model_output.dtype)
             # Compute the variance as per formula (7) from https://arxiv.org/pdf/2006.11239.pdf
             variance = (self._get_variance(t) ** 0.5) * noise
-        
+
         # sample from N(mu, sigma) = X can be obtained by X = mu + sigma * N(0, 1)
         # the variable "variance" is already multiplied by the noise N(0, 1)
         predicted_prev_sample = predicted_prev_sample + variance
 
         return predicted_prev_sample
-    
-    def add_noise(self, original_samples: torch.FloatTensor, time_steps: torch.IntTensor) -> torch.FloatTensor:
+
+    def add_noise(self, original_samples: torch.FloatTensor, time_steps: torch.IntTensor) -> (torch.FloatTensor, torch.FloatTensor):
         alphas_cumulative_product = self.alphas_cumulative_product.to(device=original_samples.device, dtype=original_samples.dtype)
         time_steps = time_steps.to(original_samples.device)
 
@@ -115,4 +107,5 @@ class DDPMSampler:
         # here mu = sqrt_alpha_prod * original_samples and sigma = sqrt_one_minus_alpha_prod
         noise = torch.randn(original_samples.shape, generator=self.generator, device=original_samples.device, dtype=original_samples.dtype)
         noisy_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
-        return noisy_samples
+        return noisy_samples, noise
+
