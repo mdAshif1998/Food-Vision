@@ -194,9 +194,19 @@ def train(args):
             tokens = torch.tensor(tokens, dtype=torch.long, device=device)
             # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
             conditional_context = clip(tokens)
-            sampled_images = sampling(diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
-            ema_sampled_images = sampling(ema_diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
+            dump_to_idle_device(clip)
 
+            sampled_latents = sampling(diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
+            ema_sampled_latents = sampling(ema_diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
+
+            # Get the sampled images form the sampled latents using the VAE Decoder
+            decoder = models["decoder"]
+            decoder.to(device)
+            # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 3, Height, Width)
+            sampled_images = decoder(sampled_latents)
+            ema_sampled_images = decoder(ema_sampled_latents)
+            dump_to_idle_device(decoder)
+            
             # Save images
             save_images(sampled_images, os.path.join("results", args.run_name, f"{epoch}.jpg"))
             save_images(ema_sampled_images, os.path.join("results", args.run_name, f"{epoch}_ema.jpg"))

@@ -26,8 +26,11 @@ def plot_images(images):
 
 
 def save_images(images, path, **kwargs):
+    images = rescale(images, (-1, 1), (0, 255), clamp=True)
     grid = torchvision.utils.make_grid(images, **kwargs)
-    nd_array = grid.permute(1, 2, 0).to('cpu').numpy()
+    # (Batch_Size, Channel, Height, Width) -> (Batch_Size, Height, Width, Channel)
+    nd_array = grid.permute(0, 2, 3, 1).to('cpu', torch.uint8).numpy()
+    # nd_array = grid.permute(1, 2, 0).to('cpu').numpy()
     im = Image.fromarray(nd_array)
     im.save(path)
 
