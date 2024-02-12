@@ -202,6 +202,7 @@ def train(args):
             save_images(ema_sampled_images, os.path.join("results", args.run_name, f"{epoch}_ema.jpg"))
 
             # Save model checkpoint
+            # TODO Need to follow the previous strategy to save the weights
             torch.save(diffusion.state_dict(), os.path.join("models", args.run_name, f"ckpt.pt"))
             torch.save(ema_diffusion.state_dict(), os.path.join("models", args.run_name, f"ema_ckpt.pt"))
             torch.save(optimizer.state_dict(), os.path.join("models", args.run_name, f"optim.pt"))
