@@ -2,8 +2,10 @@ import os
 import torch
 import torchvision
 from PIL import Image
+from torch.utils.data import Dataset
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
+import pandas as pd
 
 
 def rescale(x, old_range, new_range, clamp=False):
@@ -29,15 +31,54 @@ def save_images(images, path, **kwargs):
     im = Image.fromarray(nd_array)
     im.save(path)
 
+# Only for images
+# def get_data(args):
+#     transforms = torchvision.transforms.Compose([
+#         torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
+#         torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
+#         torchvision.transforms.ToTensor(),
+#         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+#     ])
+#     dataset = torchvision.datasets.ImageFolder(args.dataset_path, transform=transforms)
+#     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+#     return dataloader
+
+
+class ImageIngredientPromptDataset(Dataset):
+    def __init__(self, dataframe, root_dir, transform=None):
+        self.dataframe = dataframe
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataframe)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, self.dataframe.iloc[idx, 0])
+        image = Image.open(img_name).convert("RGB")
+        if self.transform:
+            image = self.transform(image)
+
+        caption = self.dataframe.iloc[idx, 1]
+
+        return image, caption
+
 
 def get_data(args):
+    # Read the Excel file containing image file names and captions
+    try:
+        dataframe = pd.read_excel(args.excel_path, engine="openpyxl")
+    except ModuleNotFoundError:
+        dataframe = pd.read_excel(args.excel_path)
+
     transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
         torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
-    dataset = torchvision.datasets.ImageFolder(args.dataset_path, transform=transforms)
+
+    dataset = ImageIngredientPromptDataset(dataframe, args.image_dataset_path, transform=transforms)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     return dataloader
 

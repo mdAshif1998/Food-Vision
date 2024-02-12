@@ -2,7 +2,7 @@ import os
 import copy
 import numpy as np
 import torch
-import model_loader
+import model_loader_for_train
 import torch.nn as nn
 from tqdm import tqdm
 from torch import optim
@@ -118,7 +118,7 @@ def train(args):
     # Load the Pre-trained VAE and CLIP Encoder
     model_file = args.model_file
 
-    models = model_loader.preload_models_from_standard_weights(model_file, device)
+    models = model_loader_for_train.preload_models_from_standard_weights(model_file, device)
     current_prompt = []
     latents_width = input_image_width // 8
     latents_height = input_image_height // 8
