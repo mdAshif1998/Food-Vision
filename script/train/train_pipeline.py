@@ -15,16 +15,16 @@ from ddpm_for_train import DDPMSampler
 logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=logging.INFO, datefmt="%I:%M:%S")
 
 
-def get_data(args):
-    transforms = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
-        torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    dataset = torchvision.datasets.ImageFolder(args.dataset_path, transform=transforms)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-    return dataloader
+# def get_data(args):
+#     transforms = torchvision.transforms.Compose([
+#         torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
+#         torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
+#         torchvision.transforms.ToTensor(),
+#         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+#     ])
+#     dataset = torchvision.datasets.ImageFolder(args.dataset_path, transform=transforms)
+#     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+#     return dataloader
 
 
 def convert_image_tensor_to_latent_tensor(input_image_tensor, vae_encoder, input_image_height, input_image_width, generator, device, latents_shape):

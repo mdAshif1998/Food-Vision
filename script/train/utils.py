@@ -71,6 +71,7 @@ def get_data(args):
     # Read the Excel file containing image file names and captions
     try:
         dataframe = pd.read_excel(args.excel_path, engine="openpyxl")
+        dataframe = dataframe[['image_id', 'ingredient_v2']]
     except ModuleNotFoundError:
         dataframe = pd.read_excel(args.excel_path)
 

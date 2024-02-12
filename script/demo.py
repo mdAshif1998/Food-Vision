@@ -7,7 +7,7 @@ import torch
 
 DEVICE = "cpu"
 
-ALLOW_CUDA = False
+ALLOW_CUDA = True
 ALLOW_MPS = False
 
 if torch.cuda.is_available() and ALLOW_CUDA:
@@ -25,7 +25,9 @@ models = model_loader.preload_models_from_standard_weights(model_file, DEVICE)
 
 # prompt = "A dog with sunglasses, wearing comfy hat, looking at camera, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
 # prompt = "A cat stretching on the floor, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
-prompt = "Tasty noodles in a plate, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
+# prompt = "Tasty noodles in a plate, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
+prompt = "Natural landscape with baobab tree and blue sky with rocky valley, 8k resolution"
+
 unconditional_prompt = ""  # Also known as negative prompt
 do_cfg = True
 cfg_scale = 8  # min: 1, max: 14

@@ -1,17 +1,15 @@
-import model_loader
-import pipeline
-from PIL import Image
-from pathlib import Path
-from transformers import CLIPTokenizer
-import torch
-import argparse
 
+from transformers import CLIPTokenizer
+import argparse
+from train_pipeline import train
 
 vocab_json_path = "D:/DDPM/Food-Vision/data/tokenizer_vocab.json"
 merge_file_path = "D:/DDPM/Food-Vision/data/tokenizer_merges.txt"
 model_file = "D:/DDPM/Food-Vision/data/v1-5-pruned-ema_only.ckpt"
-image_dataset_path = "Dataset Path For Image"
-excel_path = "Excel path which contains the prompt and the corresponding image file name"
+# Dataset Path For Image
+image_dataset_path = "E:/image"
+# Excel path which contains the prompt and the corresponding image file name
+excel_path = "E:/excel/preprocessed_ingredient.xlsx"
 
 
 def launch():
@@ -33,6 +31,7 @@ def launch():
     args.excel_path = excel_path
     args.cfg_scale = 7
     args.lr = 3e-4
+    train(args)
 
 
 if __name__ == '__main__':
