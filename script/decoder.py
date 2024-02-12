@@ -3,7 +3,8 @@ from torch import nn
 from torch.nn import functional as F
 from attention import SelfAttention
 
-class VAE_AttentionBlock(nn.Module):
+
+class VAEAttentionBlock(nn.Module):
     def __init__(self, channels):
         super().__init__()
         self.groupnorm = nn.GroupNorm(32, channels)
@@ -41,7 +42,8 @@ class VAE_AttentionBlock(nn.Module):
         # (Batch_Size, Features, Height, Width)
         return x 
 
-class VAE_ResidualBlock(nn.Module):
+
+class VAEResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.groupnorm_1 = nn.GroupNorm(32, in_channels)
@@ -81,7 +83,8 @@ class VAE_ResidualBlock(nn.Module):
         # (Batch_Size, Out_Channels, Height, Width) -> (Batch_Size, Out_Channels, Height, Width)
         return x + self.residual_layer(residue)
 
-class VAE_Decoder(nn.Sequential):
+
+class VAEDecoder(nn.Sequential):
     def __init__(self):
         super().__init__(
             # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 4, Height / 8, Width / 8)
@@ -91,22 +94,22 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(4, 512, kernel_size=3, padding=1),
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_AttentionBlock(512), 
+            VAEAttentionBlock(512),
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # Repeats the rows and columns of the data by scale_factor (like when you resize an image by doubling its size).
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 4, Width / 4)
@@ -116,13 +119,13 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(512, 512, kernel_size=3, padding=1), 
             
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            VAE_ResidualBlock(512, 512), 
+            VAEResidualBlock(512, 512), 
             
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 2, Width / 2)
             nn.Upsample(scale_factor=2), 
@@ -131,13 +134,13 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(512, 512, kernel_size=3, padding=1), 
             
             # (Batch_Size, 512, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
-            VAE_ResidualBlock(512, 256), 
+            VAEResidualBlock(512, 256), 
             
             # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
-            VAE_ResidualBlock(256, 256), 
+            VAEResidualBlock(256, 256), 
             
             # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
-            VAE_ResidualBlock(256, 256), 
+            VAEResidualBlock(256, 256), 
             
             # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height, Width)
             nn.Upsample(scale_factor=2), 
@@ -146,13 +149,13 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(256, 256, kernel_size=3, padding=1), 
             
             # (Batch_Size, 256, Height, Width) -> (Batch_Size, 128, Height, Width)
-            VAE_ResidualBlock(256, 128), 
+            VAEResidualBlock(256, 128), 
             
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
-            VAE_ResidualBlock(128, 128), 
+            VAEResidualBlock(128, 128), 
             
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
-            VAE_ResidualBlock(128, 128), 
+            VAEResidualBlock(128, 128), 
             
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
             nn.GroupNorm(32, 128), 
@@ -175,3 +178,6 @@ class VAE_Decoder(nn.Sequential):
 
         # (Batch_Size, 3, Height, Width)
         return x
+
+
+

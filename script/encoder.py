@@ -3,13 +3,14 @@ from torch import nn
 from torch.nn import functional as F
 from decoder import VAE_AttentionBlock, VAE_ResidualBlock
 
-class VAE_Encoder(nn.Sequential):
+
+class VAEEncoder(nn.Sequential):
     def __init__(self):
         super().__init__(
             # (Batch_Size, Channel, Height, Width) -> (Batch_Size, 128, Height, Width)
             nn.Conv2d(3, 128, kernel_size=3, padding=1),
             
-             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
+            # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
             VAE_ResidualBlock(128, 128),
             
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
@@ -75,7 +76,7 @@ class VAE_Encoder(nn.Sequential):
 
         for module in self:
 
-            if getattr(module, 'stride', None) == (2, 2):  # Padding at downsampling should be asymmetric (see #8)
+            if getattr(module, 'stride', None) == (2, 2):  # Padding at down sampling should be asymmetric (see #8)
                 # Pad: (Padding_Left, Padding_Right, Padding_Top, Padding_Bottom).
                 # Pad with zeros on the right and bottom.
                 # (Batch_Size, Channel, Height, Width) -> (Batch_Size, Channel, Height + Padding_Top + Padding_Bottom, Width + Padding_Left + Padding_Right) = (Batch_Size, Channel, Height + 1, Width + 1)
@@ -90,14 +91,14 @@ class VAE_Encoder(nn.Sequential):
         # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 4, Height / 8, Width / 8)
         variance = log_variance.exp()
         # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 4, Height / 8, Width / 8)
-        stdev = variance.sqrt()
+        standard_deviation = variance.sqrt()
         
-        # Transform N(0, 1) -> N(mean, stdev) 
+        # Transform N(0, 1) -> N(mean, standard_deviation)
         # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 4, Height / 8, Width / 8)
-        x = mean + stdev * noise
+        x = mean + standard_deviation * noise
         
         # Scale by a constant
-        # Constant taken from: https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/configs/stable-diffusion/v1-inference.yaml#L17C1-L17C1
+        #  taken from: https://github.com/CompVis/stable-diffusion/blob/21f890f9da3cfbeaba8e2ac3c425ee9e998d5229/configs/stable-diffusion/v1-inference.yaml#L17C1-L17C1
         x *= 0.18215
         
         return x

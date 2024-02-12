@@ -122,7 +122,7 @@ def train(args):
     current_prompt = []
     latents_width = input_image_width // 8
     latents_height = input_image_height // 8
-    latents_shape = (1, 4, latents_height, latents_width)
+    latents_shape = (batch_size, 4, latents_height, latents_width)
     for epoch in range(args.epochs):
         logging.info(f"Starting epoch {epoch}:")
         pbar = tqdm(dataloader)
