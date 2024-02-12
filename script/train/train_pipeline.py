@@ -61,27 +61,31 @@ def sampling(diffusion_model, conditional_context, unconditional_context, sample
     time_steps = tqdm(sampler.time_steps)
     # (Batch_Size, 4, Latents_Height, Latents_Width)
     latents = torch.randn(latents_shape, generator=generator, device=device)
-    for i, timestep in enumerate(time_steps):
-        # (1, 320)
-        time_embedding = get_time_embedding(timestep).to(device)
+    logging.info(f"Sampling {latents_shape[0]} new images....")
+    diffusion_model.eval()
+    with torch.no_grad():
+        for i, timestep in enumerate(time_steps):
+            # (1, 320)
+            time_embedding = get_time_embedding(timestep).to(device)
 
-        if cfg_scale:
-            # model_output is the predicted noise for the unconditional context
+            if cfg_scale:
+                # model_output is the predicted noise for the unconditional context
+                # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
+                unconditional_model_output = diffusion_model(latents, unconditional_context, time_embedding)
+
+                # model_output is the predicted noise for the conditional context
+                # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
+                conditional_model_output = diffusion_model(latents, conditional_context, time_embedding)
+
+                model_output = cfg_scale * (conditional_model_output - unconditional_model_output) + unconditional_model_output
+            else:
+                # model_output is the predicted noise for the conditional context
+                # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
+                model_output = diffusion_model(latents, conditional_context, time_embedding)
+
             # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
-            unconditional_model_output = diffusion_model(latents, unconditional_context, time_embedding)
-
-            # model_output is the predicted noise for the conditional context
-            # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
-            conditional_model_output = diffusion_model(latents, conditional_context, time_embedding)
-
-            model_output = cfg_scale * (conditional_model_output - unconditional_model_output) + unconditional_model_output
-        else:
-            # model_output is the predicted noise for the conditional context
-            # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
-            model_output = diffusion_model(latents, conditional_context, time_embedding)
-
-        # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 4, Latents_Height, Latents_Width)
-        latents = sampler.step(timestep, latents, model_output)
+            latents = sampler.step(timestep, latents, model_output)
+    diffusion_model.train()
     return latents
 
 
@@ -206,7 +210,7 @@ def train(args):
             sampled_images = decoder(sampled_latents)
             ema_sampled_images = decoder(ema_sampled_latents)
             dump_to_idle_device(decoder)
-            
+
             # Save images
             save_images(sampled_images, os.path.join("results", args.run_name, f"{epoch}.jpg"))
             save_images(ema_sampled_images, os.path.join("results", args.run_name, f"{epoch}_ema.jpg"))
