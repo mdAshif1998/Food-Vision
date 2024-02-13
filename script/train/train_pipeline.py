@@ -129,8 +129,9 @@ def train(args):
     latents_shape = (batch_size, 4, latents_height, latents_width)
     for epoch in range(args.epochs):
         logging.info(f"Starting epoch {epoch}:")
-        pbar = tqdm(dataloader)
-        for i, (images, ingredients_prompt) in enumerate(pbar):
+        progress_bar = tqdm(dataloader)
+        loss_per_epoch_list = []
+        for i, (images, ingredients_prompt) in enumerate(progress_bar):
 
             # Get Time embeddings
             time_embedding = sampler.set_inference_time_steps(images.shape[0]).to(device)
@@ -168,15 +169,18 @@ def train(args):
 
             # Calculate loss
             loss = mse(actual_noise, predicted_noise)
+            loss_per_epoch_list.append(loss.item())
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             ema.step_ema(ema_diffusion, diffusion)
-            pbar.set_postfix(MSE=loss.item())
+            progress_bar.set_postfix(MSE=loss.item())
             logger.add_scalar("MSE", loss.item(), global_step=epoch * length_of_data_loader + i)
 
             # Reassign current prompt
             current_prompt = ingredients_prompt
+        average_loss = np.mean(np.array(loss_per_epoch_list))
+        print(f"Average Epoch Loss: {average_loss} For Epoch Number: {epoch}")
 
         if epoch % 10 == 0:
             # Get Context/Prompt From CLIP Encoder
@@ -216,9 +220,21 @@ def train(args):
             save_images(ema_sampled_images, os.path.join("results", args.run_name, f"{epoch}_ema.jpg"))
 
             # Save model checkpoint
-            # TODO Need to follow the previous strategy to save the weights
-            torch.save(diffusion.state_dict(), os.path.join("models", args.run_name, f"ckpt.pt"))
-            torch.save(ema_diffusion.state_dict(), os.path.join("models", args.run_name, f"ema_ckpt.pt"))
-            torch.save(optimizer.state_dict(), os.path.join("models", args.run_name, f"optim.pt"))
+            # Save diffusion model
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': diffusion.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': average_loss,
+            }, os.path.join("models", args.run_name, f"check_point.pt"))
+
+            # Save ema diffusion model
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': ema_diffusion.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': average_loss,
+            }, os.path.join("models", args.run_name, f"ema_check_point.pt"))
+
 
 
