@@ -2,6 +2,7 @@ import os
 import copy
 import numpy as np
 import torch
+from torch.nn import functional as f
 import model_loader_for_train
 import torch.nn as nn
 from tqdm import tqdm
@@ -29,7 +30,8 @@ logging.basicConfig(format="%(asctime)s - %(levelname)s: %(message)s", level=log
 
 def convert_image_tensor_to_latent_tensor(input_image_tensor, vae_encoder, input_image_height, input_image_width, generator, device, latents_shape):
 
-    input_image_tensor = input_image_tensor.resize((input_image_width, input_image_height))
+    # input_image_tensor = input_image_tensor.resize((input_image_width, input_image_height))
+    # input_image_tensor = f.interpolate(input_image_tensor, size=(input_image_width, input_image_height), mode='bilinear', align_corners=False)
     # (Height, Width, Channel)
     input_image_tensor = np.array(input_image_tensor)
     # (Height, Width, Channel) -> (Height, Width, Channel)

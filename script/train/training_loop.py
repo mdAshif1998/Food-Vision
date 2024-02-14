@@ -18,9 +18,9 @@ def launch():
     args.run_name = "Latent DDPM Conditional"
     args.epochs = 300
     args.batch_size = 8
-    args.input_image_height = 64
-    args.input_image_width = 64
-    args.image_size = 64
+    args.input_image_height = 512
+    args.input_image_width = 512
+    args.image_size = 512
     args.device = "cuda"
     args.seed = 42
     args.tokenizer = CLIPTokenizer(vocab_file=vocab_json_path, merges_file=merge_file_path)

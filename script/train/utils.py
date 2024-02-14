@@ -75,11 +75,15 @@ def get_data(args):
     except ModuleNotFoundError:
         dataframe = pd.read_excel(args.excel_path)
 
+    # transforms = torchvision.transforms.Compose([
+    #     torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
+    #     torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
+    #     torchvision.transforms.ToTensor(),
+    #     torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    # ])
+
     transforms = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(80),  # args.image_size + 1/4 *args.image_size
-        torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0), interpolation=torchvision.transforms.InterpolationMode.BILINEAR)
     ])
 
     dataset = ImageIngredientPromptDataset(dataframe, args.image_dataset_path, transform=transforms)
