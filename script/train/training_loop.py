@@ -27,10 +27,11 @@ def launch():
     # Also known as negative prompt
     args.unconditional_prompt = ""
     args.idle_device = "cpu"
-    args.dataset_path = image_dataset_path
+    args.image_dataset_path = image_dataset_path
     args.excel_path = excel_path
     args.cfg_scale = 7
     args.lr = 3e-4
+    args.model_file = model_file
     train(args)
 
 
