@@ -83,7 +83,8 @@ def get_data(args):
     # ])
 
     transforms = torchvision.transforms.Compose([
-        torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0), interpolation=torchvision.transforms.InterpolationMode.BILINEAR)
+        torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0), interpolation=torchvision.transforms.InterpolationMode.BILINEAR),
+        torchvision.transforms.ToTensor()
     ])
 
     dataset = ImageIngredientPromptDataset(dataframe, args.image_dataset_path, transform=transforms)
