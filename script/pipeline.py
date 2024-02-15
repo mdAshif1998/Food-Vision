@@ -100,6 +100,8 @@ def generate(
             # (Batch_Size, 4, Latents_Height, Latents_Width)
             encoder_noise = torch.randn(latents_shape, generator=generator, device=device)
             # (Batch_Size, 4, Latents_Height, Latents_Width)
+            if device == 'cuda':
+                input_image_tensor = input_image_tensor.to(device)
             latents = encoder(input_image_tensor, encoder_noise)
 
             # Add noise to the latents (the encoded input image)
