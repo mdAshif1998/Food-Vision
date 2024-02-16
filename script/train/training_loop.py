@@ -17,7 +17,7 @@ def launch():
     args = parser.parse_args()
     args.run_name = "Latent DDPM Conditional"
     args.epochs = 300
-    args.batch_size = 8
+    args.batch_size = 4
     args.input_image_height = 512
     args.input_image_width = 512
     args.image_size = 512

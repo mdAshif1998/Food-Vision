@@ -1,5 +1,7 @@
 import os
 import copy
+import shutil
+
 import numpy as np
 import torch
 from torch.nn import functional as f
@@ -103,13 +105,13 @@ def train(args):
     tokenizer = args.tokenizer
     unconditional_prompt = args.unconditional_prompt
     idle_device = args.idle_device
+
+    model_file = args.model_file
     dataloader = get_data(args)
-    diffusion = Diffusion().to(device)
-    optimizer = optim.AdamW(diffusion.parameters(), lr=args.lr)
-    mse = nn.MSELoss()
 
     def dump_to_idle_device(data_model):
-        data_model.to(idle_device)
+        del data_model
+        torch.cuda.empty_cache()
 
     # Initialize random number generator according to the seed specified
     generator = torch.Generator(device=device)
@@ -118,52 +120,57 @@ def train(args):
     else:
         generator.manual_seed(seed)
     sampler = DDPMSampler(generator)
+    if os.path.isdir(os.path.join(os.getcwd(), "runs")):
+        shutil.rmtree(os.path.join(os.getcwd(), "runs"))
     logger = SummaryWriter(os.path.join("runs", args.run_name))
     length_of_data_loader = len(dataloader)
     ema = EMA(0.995)
+
+    diffusion = Diffusion().to(idle_device)
+    optimizer = optim.AdamW(diffusion.parameters(), lr=args.lr)
     ema_diffusion = copy.deepcopy(diffusion).eval().requires_grad_(False)
-    # Load the Pre-trained VAE and CLIP Encoder
-    model_file = args.model_file
+    mse = nn.MSELoss()
 
     current_prompt = []
     latents_width = input_image_width // 8
     latents_height = input_image_height // 8
     latents_shape = (batch_size, 4, latents_height, latents_width)
+    pretrained_network_state_dict = model_loader_for_train.get_model_state_dict(model_file)
     for epoch in range(args.epochs):
         logging.info(f"Starting epoch {epoch}:")
         progress_bar = tqdm(dataloader)
         loss_per_epoch_list = []
         for i, (images, ingredients_prompt) in enumerate(progress_bar):
 
+            # Get Latent Tensor From VAE Encoder
+            with torch.no_grad():
+                current_load = model_loader_for_train.preload_models_from_standard_weights(pretrained_network_state_dict, device, "encoder")
+                latents_tensor = convert_image_tensor_to_latent_tensor(images, current_load, input_image_height, input_image_width, generator, device, latents_shape)
+                # Delete the Current Loaded Network
+                dump_to_idle_device(current_load)
+
+                current_load = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
+
+                # clip.to(device)
+                if np.random.random() < 0.1:
+                    # Convert into a list of length Seq_Len=77
+                    unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
+                    # (Batch_Size, Seq_Len)
+                    unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device=device)
+                    # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
+                    context = current_load(unconditional_tokens)
+                else:
+                    # Convert into a list of length Seq_Len=77
+                    tokens = tokenizer.batch_encode_plus(ingredients_prompt, padding="max_length", max_length=77).input_ids
+                    # (Batch_Size, Seq_Len)
+                    tokens = torch.tensor(tokens, dtype=torch.long, device=device)
+                    # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
+                    context = current_load(tokens)
+                # Delete the Current Loaded Network
+                dump_to_idle_device(current_load)
+
             # Get Time embeddings
             time_embedding = sampler.set_inference_time_steps(images.shape[0]).to(device)
-
-            # Get Latent Tensor From VAE Encoder
-            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "encoder")
-            encoder = models["current_load"]
-            # encoder.to(device)
-            latents_tensor = convert_image_tensor_to_latent_tensor(images, encoder, input_image_height, input_image_width, generator, device, latents_shape)
-            dump_to_idle_device(encoder)
-
-            # Get Context/Prompt From CLIP Encoder
-            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
-            clip = models["current_load"]
-            # clip.to(device)
-            if np.random.random() < 0.1:
-                # Convert into a list of length Seq_Len=77
-                unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
-                # (Batch_Size, Seq_Len)
-                unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device=device)
-                # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
-                context = clip(unconditional_tokens)
-            else:
-                # Convert into a list of length Seq_Len=77
-                tokens = tokenizer.batch_encode_plus([ingredients_prompt], padding="max_length", max_length=77).input_ids
-                # (Batch_Size, Seq_Len)
-                tokens = torch.tensor(tokens, dtype=torch.long, device=device)
-                # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
-                context = clip(tokens)
-            dump_to_idle_device(clip)
 
             # Add Noise in the original latents
             noisy_latents, actual_noise = sampler.add_noise(latents_tensor, time_embedding)
