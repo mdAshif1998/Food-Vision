@@ -41,8 +41,9 @@ def convert_image_tensor_to_latent_tensor(input_image_tensor, vae_encoder, input
     # (Height, Width, Channel) -> (Batch_Size, Height, Width, Channel)
     # input_image_tensor = input_image_tensor.unsqueeze(0)
     # (Batch_Size, Height, Width, Channel) -> (Batch_Size, Channel, Height, Width)
-    input_image_tensor = input_image_tensor.permute(0, 3, 1, 2)
-
+    # input_image_tensor = input_image_tensor.permute(0, 3, 1, 2)
+    if device == 'cuda':
+        input_image_tensor = input_image_tensor.to(device)
     # (Batch_Size, 4, Latents_Height, Latents_Width)
     encoder_noise = torch.randn(latents_shape, generator=generator, device=device)
     # (Batch_Size, 4, Latents_Height, Latents_Width)
@@ -124,7 +125,6 @@ def train(args):
     # Load the Pre-trained VAE and CLIP Encoder
     model_file = args.model_file
 
-    models = model_loader_for_train.preload_models_from_standard_weights(model_file, device)
     current_prompt = []
     latents_width = input_image_width // 8
     latents_height = input_image_height // 8
@@ -139,14 +139,16 @@ def train(args):
             time_embedding = sampler.set_inference_time_steps(images.shape[0]).to(device)
 
             # Get Latent Tensor From VAE Encoder
-            encoder = models["encoder"]
-            encoder.to(device)
+            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "encoder")
+            encoder = models["current_load"]
+            # encoder.to(device)
             latents_tensor = convert_image_tensor_to_latent_tensor(images, encoder, input_image_height, input_image_width, generator, device, latents_shape)
             dump_to_idle_device(encoder)
 
             # Get Context/Prompt From CLIP Encoder
-            clip = models["clip"]
-            clip.to(device)
+            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
+            clip = models["current_load"]
+            # clip.to(device)
             if np.random.random() < 0.1:
                 # Convert into a list of length Seq_Len=77
                 unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
@@ -186,8 +188,9 @@ def train(args):
 
         if epoch % 10 == 0:
             # Get Context/Prompt From CLIP Encoder
-            clip = models["clip"]
-            clip.to(device)
+            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
+            clip = models["current_load"]
+            # clip.to(device)
 
             # Generate unconditional context
             # Convert into a list of length Seq_Len=77
@@ -210,8 +213,9 @@ def train(args):
             ema_sampled_latents = sampling(ema_diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
 
             # Get the sampled images form the sampled latents using the VAE Decoder
-            decoder = models["decoder"]
-            decoder.to(device)
+            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "decoder")
+            decoder = models["current_load"]
+            # decoder.to(device)
             # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 3, Height, Width)
             sampled_images = decoder(sampled_latents)
             ema_sampled_images = decoder(ema_sampled_latents)

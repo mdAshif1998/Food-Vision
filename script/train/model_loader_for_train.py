@@ -5,22 +5,21 @@ from decoder import VAEDecoder
 import model_converter
 
 
-def preload_models_from_standard_weights(ckpt_path, device):
+def preload_models_from_standard_weights(ckpt_path, device, util_network):
     state_dict = model_converter.load_from_standard_weights(ckpt_path, device)
-
-    encoder = VAEEncoder().to(device)
-    encoder.load_state_dict(state_dict['encoder'], strict=True)
-
-    decoder = VAEDecoder().to(device)
-    decoder.load_state_dict(state_dict['decoder'], strict=True)
-
-    clip = CLIP().to(device)
-    clip.load_state_dict(state_dict['clip'], strict=True)
+    if util_network == "encoder":
+        current_load = VAEEncoder().to(device)
+        current_load.load_state_dict(state_dict['encoder'], strict=True)
+    elif util_network == "decoder":
+        current_load = VAEDecoder().to(device)
+        current_load.load_state_dict(state_dict['decoder'], strict=True)
+    else:
+        current_load = CLIP().to(device)
+        current_load.load_state_dict(state_dict['clip'], strict=True)
 
     return {
-        'clip': clip,
-        'encoder': encoder,
-        'decoder': decoder
+        'current_load': current_load,
+
     }
 
 
