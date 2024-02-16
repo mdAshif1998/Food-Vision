@@ -42,6 +42,7 @@ def convert_image_tensor_to_latent_tensor(input_image_tensor, vae_encoder, input
     # input_image_tensor = input_image_tensor.unsqueeze(0)
     # (Batch_Size, Height, Width, Channel) -> (Batch_Size, Channel, Height, Width)
     # input_image_tensor = input_image_tensor.permute(0, 3, 1, 2)
+
     if device == 'cuda':
         input_image_tensor = input_image_tensor.to(device)
     # (Batch_Size, 4, Latents_Height, Latents_Width)
