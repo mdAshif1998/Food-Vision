@@ -63,6 +63,15 @@ def get_time_embedding(timestep):
     return torch.cat([torch.cos(x), torch.sin(x)], dim=-1)
 
 
+def get_time_embedding_during_training(timestep: torch.Tensor) -> torch.Tensor:
+    # Shape: (160,)
+    frequencies = torch.pow(10000, -torch.arange(start=0, end=160, dtype=torch.float32) / 160)
+    # Shape: (1, 160)
+    x = torch.tensor(timestep.to('cpu'), dtype=torch.float32)[:, None] * frequencies[None]
+    # Shape: (1, 160 * 2)
+    return torch.cat([torch.cos(x), torch.sin(x)], dim=-1)
+
+
 def sampling(diffusion_model, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale):
     time_steps = tqdm(sampler.time_steps)
     # (Batch_Size, 4, Latents_Height, Latents_Width)
@@ -146,11 +155,12 @@ def train(args):
             # Get Latent Tensor From VAE Encoder
             with torch.no_grad():
                 current_load = model_loader_for_train.preload_models_from_standard_weights(pretrained_network_state_dict, device, "encoder")
+
                 latents_tensor = convert_image_tensor_to_latent_tensor(images, current_load, input_image_height, input_image_width, generator, device, latents_shape)
                 # Delete the Current Loaded Network
                 dump_to_idle_device(current_load)
 
-                current_load = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
+                current_load = model_loader_for_train.preload_models_from_standard_weights(pretrained_network_state_dict, device, "clip")
 
                 # clip.to(device)
                 if np.random.random() < 0.1:
@@ -162,7 +172,7 @@ def train(args):
                     context = current_load(unconditional_tokens)
                 else:
                     # Convert into a list of length Seq_Len=77
-                    tokens = tokenizer.batch_encode_plus(ingredients_prompt, padding="max_length", max_length=77).input_ids
+                    tokens = tokenizer.batch_encode_plus(ingredients_prompt, padding="max_length", max_length=77, truncation=True).input_ids
                     # (Batch_Size, Seq_Len)
                     tokens = torch.tensor(tokens, dtype=torch.long, device=device)
                     # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
@@ -177,6 +187,10 @@ def train(args):
             noisy_latents, actual_noise = sampler.add_noise(latents_tensor, time_embedding)
 
             # Predict the noise from diffusion model
+            # Step 4: Measure GPU memory usage
+            time_embedding = get_time_embedding_during_training(time_embedding).to(device)
+            diffusion.to(device)
+
             predicted_noise = diffusion(noisy_latents, context, time_embedding)
 
             # Calculate loss
@@ -185,6 +199,7 @@ def train(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            ema_diffusion.to(device)
             ema.step_ema(ema_diffusion, diffusion)
             progress_bar.set_postfix(MSE=loss.item())
             logger.add_scalar("MSE", loss.item(), global_step=epoch * length_of_data_loader + i)
@@ -195,39 +210,40 @@ def train(args):
         print(f"Average Epoch Loss: {average_loss} For Epoch Number: {epoch}")
 
         if epoch % 10 == 0:
-            # Get Context/Prompt From CLIP Encoder
-            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "clip")
-            clip = models["current_load"]
-            # clip.to(device)
+            with torch.no_grad():
+                # Get Context/Prompt From CLIP Encoder
+                current_load = model_loader_for_train.preload_models_from_standard_weights(pretrained_network_state_dict, device, "clip")
 
-            # Generate unconditional context
-            # Convert into a list of length Seq_Len=77
-            unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
-            # (Batch_Size, Seq_Len)
-            unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device=device)
-            # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
-            unconditional_context = clip(unconditional_tokens)
+                # Generate unconditional context
+                # Convert into a list of length Seq_Len=77
+                unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
+                # (Batch_Size, Seq_Len)
+                unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device=device)
+                # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
+                unconditional_context = current_load(unconditional_tokens)
 
-            # Generate conditional context
-            # Convert into a list of length Seq_Len=77
-            tokens = tokenizer.batch_encode_plus([current_prompt], padding="max_length", max_length=77).input_ids
-            # (Batch_Size, Seq_Len)
-            tokens = torch.tensor(tokens, dtype=torch.long, device=device)
-            # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
-            conditional_context = clip(tokens)
-            dump_to_idle_device(clip)
+                # Generate conditional context
+                # Convert into a list of length Seq_Len=77
+                tokens = tokenizer.batch_encode_plus([current_prompt], padding="max_length", max_length=77).input_ids
+                # (Batch_Size, Seq_Len)
+                tokens = torch.tensor(tokens, dtype=torch.long, device=device)
+                # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
+                conditional_context = current_load(tokens)
+                # Delete the Current Loaded Network
+                dump_to_idle_device(current_load)
 
             sampled_latents = sampling(diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
             ema_sampled_latents = sampling(ema_diffusion, conditional_context, unconditional_context, sampler, device, generator, latents_shape, cfg_scale=args.cfg_scale)
 
-            # Get the sampled images form the sampled latents using the VAE Decoder
-            models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "decoder")
-            decoder = models["current_load"]
-            # decoder.to(device)
-            # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 3, Height, Width)
-            sampled_images = decoder(sampled_latents)
-            ema_sampled_images = decoder(ema_sampled_latents)
-            dump_to_idle_device(decoder)
+            with torch.no_grad():
+                # Get the sampled images form the sampled latents using the VAE Decoder
+                models = model_loader_for_train.preload_models_from_standard_weights(model_file, device, "decoder")
+                decoder = models["current_load"]
+                # decoder.to(device)
+                # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 3, Height, Width)
+                sampled_images = decoder(sampled_latents)
+                ema_sampled_images = decoder(ema_sampled_latents)
+                dump_to_idle_device(decoder)
 
             # Save images
             save_images(sampled_images, os.path.join("results", args.run_name, f"{epoch}.jpg"))

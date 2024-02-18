@@ -1,7 +1,7 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
 from attention import SelfAttention
+
 
 class CLIPEmbedding(nn.Module):
     def __init__(self, n_vocab: int, n_embd: int, n_token: int):
@@ -18,6 +18,7 @@ class CLIPEmbedding(nn.Module):
         x += self.position_embedding
         
         return x
+
 
 class CLIPLayer(nn.Module):
     def __init__(self, n_head: int, n_embd: int):
@@ -37,7 +38,7 @@ class CLIPLayer(nn.Module):
         # (Batch_Size, Seq_Len, Dim)
         residue = x
         
-        ### SELF ATTENTION ###
+        # SELF ATTENTION
 
         # (Batch_Size, Seq_Len, Dim) -> (Batch_Size, Seq_Len, Dim)
         x = self.layernorm_1(x)
@@ -48,7 +49,7 @@ class CLIPLayer(nn.Module):
         # (Batch_Size, Seq_Len, Dim) + (Batch_Size, Seq_Len, Dim) -> (Batch_Size, Seq_Len, Dim)
         x += residue
 
-        ### FEEDFORWARD LAYER ###
+        # FEEDFORWARD LAYER
         # Apply a feedforward layer where the hidden dimension is 4 times the embedding dimension. 
 
         residue = x
@@ -69,14 +70,13 @@ class CLIPLayer(nn.Module):
 
         return x
 
+
 class CLIP(nn.Module):
     def __init__(self):
         super().__init__()
         self.embedding = CLIPEmbedding(49408, 768, 77)
 
-        self.layers = nn.ModuleList([
-            CLIPLayer(12, 768) for i in range(12)
-        ])
+        self.layers = nn.ModuleList([CLIPLayer(12, 768) for i in range(12)])
 
         self.layernorm = nn.LayerNorm(768)
     
@@ -94,3 +94,5 @@ class CLIP(nn.Module):
         output = self.layernorm(state)
         
         return output
+
+

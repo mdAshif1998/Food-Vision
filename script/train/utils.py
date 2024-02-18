@@ -63,15 +63,19 @@ class ImageIngredientPromptDataset(Dataset):
             image = self.transform(image)
 
         caption = self.dataframe.iloc[idx, 1]
+        unique_index = self.dataframe.iloc[idx, 2]
 
-        return image, caption
+        return image, caption, unique_index
 
 
 def get_data(args):
     # Read the Excel file containing image file names and captions
     try:
         dataframe = pd.read_excel(args.excel_path, engine="openpyxl")
-        dataframe = dataframe[['image_id', 'ingredient_v2']]
+        dataframe = dataframe.head(args.dataset_set)
+        dataframe = dataframe.reset_index().drop(['index'], axis=1)
+        dataframe['unique_index'] = dataframe.index
+        dataframe = dataframe[['image_id', 'ingredient_v2', 'unique_index']]
     except ModuleNotFoundError:
         dataframe = pd.read_excel(args.excel_path)
 
@@ -88,7 +92,7 @@ def get_data(args):
     ])
 
     dataset = ImageIngredientPromptDataset(dataframe, args.image_dataset_path, transform=transforms)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
     return dataloader
 
 

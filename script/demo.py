@@ -26,7 +26,7 @@ models = model_loader.preload_models_from_standard_weights(model_file, DEVICE)
 # prompt = "A dog with sunglasses, wearing comfy hat, looking at camera, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
 # prompt = "A cat stretching on the floor, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
 # prompt = "Tasty noodles in a plate, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
-prompt = "Natural landscape with baobab tree and blue sky with rocky valley, 8k resolution"
+prompt = "Want to add a soft drink with the burger mentioned in the picture, 8k resolution"
 
 unconditional_prompt = ""  # Also known as negative prompt
 do_cfg = True
@@ -65,7 +65,7 @@ output_image = pipeline.generate(
 )
 
 # Combine the input image and the output image into a single image.
-Image.fromarray(output_image).save("first_sample.jpg")
+Image.fromarray(output_image).save("modified_first_sample.jpg")
 
 
 
