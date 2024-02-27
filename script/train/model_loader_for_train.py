@@ -6,8 +6,8 @@ import gc
 import model_converter
 
 
-def get_model_state_dict(ckpt_path):
-    return model_converter.load_from_standard_weights(ckpt_path, 'cpu')
+def get_model_state_dict(ckpt_path, device):
+    return model_converter.load_from_standard_weights(ckpt_path, device)
 
 
 def preload_models_from_standard_weights(model_ckpt_dict, device, util_network):

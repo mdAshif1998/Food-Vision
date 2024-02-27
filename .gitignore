@@ -1,5 +1,6 @@
 /data/
 dataset/
+latent_context/
 .ipynb_checkpoints/
 .idea/
 __pycache__/
