@@ -2,6 +2,19 @@
 from transformers import CLIPTokenizer
 import argparse
 from train_pipeline import train
+"""
+Input:
+
+
+Output:
+{"Flavor Characteristics": ["sweet", "savory", "spicy", "sour", "bitter", "umami", "fruity", "floral", "smoky"],
+"Food Texture": ["crunchy", "creamy"],
+"Food Temperature": ["hot", "cold"],
+"Common Ingredients": ["meats", "vegetables", "grains", "spices", "dairy", "condiments"],
+"Cooking Technique": ["baking", "grilling", "sautéing", "steaming", "roasting", "frying", "boiling", "simmering"],
+"Cuisine Type": ["Indian", "Italian"]}
+"Ingredients Nutrients": ["proteins", "carbohydrates"] # Will facilitate later
+"""
 
 vocab_json_path = "D:/DDPM/Food-Vision/data/tokenizer_vocab.json"
 merge_file_path = "D:/DDPM/Food-Vision/data/tokenizer_merges.txt"
