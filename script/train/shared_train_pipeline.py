@@ -1,10 +1,6 @@
 import os
 import copy
 import shutil
-
-import numpy as np
-import torch
-from torch.nn import functional as f
 import model_loader_for_train
 import torch.nn as nn
 from tqdm import tqdm
@@ -81,7 +77,9 @@ def train(args):
     idle_device = args.idle_device
 
     model_file = args.model_file
-    dataloader = get_data(args)
+    custom_dataset = CustomDataset(args.latent_file, args.context_file)
+    dataloader = DataLoader(custom_dataset, batch_size=batch_size, collate_fn=custom_collate)
+    # dataloader = get_data(args)
 
     def dump_to_idle_device(data_model):
         del data_model
@@ -100,7 +98,7 @@ def train(args):
     length_of_data_loader = len(dataloader)
     ema = EMA(0.995)
 
-    diffusion = Diffusion().to(idle_device)
+    diffusion = Diffusion().to(device)
     optimizer = optim.AdamW(diffusion.parameters(), lr=args.lr)
     ema_diffusion = copy.deepcopy(diffusion).eval().requires_grad_(False)
     mse = nn.MSELoss()
@@ -118,17 +116,21 @@ def train(args):
         # Convert into a list of length Seq_Len=77
         unconditional_tokens = tokenizer.batch_encode_plus([unconditional_prompt] * batch_size, padding="max_length", max_length=77).input_ids
         # (Batch_Size, Seq_Len)
-        unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device=device)
+        unconditional_tokens = torch.tensor(unconditional_tokens, dtype=torch.long, device="cpu")
         # (Batch_Size, Seq_Len) -> (Batch_Size, Seq_Len, Dim)
         unconditional_context = current_load(unconditional_tokens)
-        dump_to_idle_device(current_load)
+        # dump_to_idle_device(current_load)
     # Start the training loop
     for epoch in range(args.epochs):
         logging.info(f"Starting epoch {epoch}:")
         progress_bar = tqdm(dataloader)
         loss_per_epoch_list = []
         for i, (latents_tensor, context) in enumerate(progress_bar):
-
+            # Transform
+            latents_tensor = latents_tensor.float()
+            context = context.float()
+            context = context.to(device)
+            latents_tensor = latents_tensor.to(device)
             # Get Time embeddings
             time_embedding = sampler.set_inference_time_steps(batch_size).to(device)
 
@@ -137,7 +139,6 @@ def train(args):
 
             # Predict the noise from diffusion model
             time_embedding = get_time_embedding_during_training(time_embedding).to(device)
-            diffusion.to(device)
             predicted_noise = diffusion(noisy_latents, context, time_embedding)
 
             # Calculate loss
@@ -146,7 +147,6 @@ def train(args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            ema_diffusion.to(device)
             ema.step_ema(ema_diffusion, diffusion)
             progress_bar.set_postfix(MSE=loss.item())
             logger.add_scalar("MSE", loss.item(), global_step=epoch * length_of_data_loader + i)
@@ -167,7 +167,6 @@ def train(args):
                 # (Batch_Size, 4, Latents_Height, Latents_Width) -> (Batch_Size, 3, Height, Width)
                 sampled_images = current_load(sampled_latents)
                 ema_sampled_images = current_load(ema_sampled_latents)
-                dump_to_idle_device(current_load)
 
             # Save images
             save_images(sampled_images, os.path.join("results", args.run_name, f"{epoch}.jpg"))

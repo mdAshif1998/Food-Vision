@@ -5,6 +5,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
+import numpy as np
 import pandas as pd
 
 
@@ -94,6 +95,35 @@ def get_data(args):
     dataset = ImageIngredientPromptDataset(dataframe, args.image_dataset_path, transform=transforms)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
     return dataloader
+
+
+class CustomDataset(Dataset):
+    def __init__(self, latent_file, context_file):
+        self.latent_file = latent_file
+        self.context_file = context_file
+        self.length = len(np.load(self.latent_file, mmap_mode='r'))  # Length of dataset
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        latent_data = np.load(self.latent_file, mmap_mode='r')
+        context_data = np.load(self.context_file, mmap_mode='r')
+
+        # Load specific samples only
+        latent_tensor = torch.from_numpy(latent_data[idx].copy())  # Create a writable copy
+        context_tensor = torch.from_numpy(context_data[idx].copy())  # Create a writable copy
+
+        # Delete memory-mapped file objects to close them
+        del latent_data
+        del context_data
+
+        return latent_tensor, context_tensor
+
+
+def custom_collate(batch):
+    latent_tensors, context_tensors = zip(*batch)
+    return torch.stack(latent_tensors), torch.stack(context_tensors)
 
 
 def setup_logging(run_name):

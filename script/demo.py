@@ -4,7 +4,7 @@ from PIL import Image
 from pathlib import Path
 from transformers import CLIPTokenizer
 import torch
-
+import pandas as pd
 DEVICE = "cpu"
 
 ALLOW_CUDA = True
@@ -26,18 +26,19 @@ models = model_loader.preload_models_from_standard_weights(model_file, DEVICE)
 # prompt = "A dog with sunglasses, wearing comfy hat, looking at camera, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
 # prompt = "A cat stretching on the floor, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
 # prompt = "Tasty noodles in a plate, highly detailed, ultra sharp, cinematic, 100mm lens, 8k resolution."
-prompt = "Want to add a soft drink with the burger mentioned in the picture, 8k resolution"
-
+# dataframe = pd.read_excel("E:/excel/preprocessed_ingredient.xlsx", engine="openpyxl")
+# prompt = "Want to add a soft drink with the burger mentioned in the picture, 8k resolution"
+prompt = "Ingredients: chicken thighs and  tsp kombu tea and  white pepper, Cuisine Type: Indian. Generate a high quality dish image."
 unconditional_prompt = ""  # Also known as negative prompt
 do_cfg = True
 cfg_scale = 8  # min: 1, max: 14
 
 # IMAGE TO IMAGE
 
-# input_image = None
 # Comment to disable image to image
-image_path = "D:/DDPM/Food-Vision/script/first_sample.jpg"
-input_image = Image.open(image_path)
+# image_path = "D:/DDPM/Food-Vision/script/first_sample.jpg"
+# input_image = Image.open(image_path)
+input_image = None
 # Higher values means more noise will be added to the input image, so the result will further from the input image.
 # Lower values means less noise is added to the input image, so output will be closer to the input image.
 strength = 0.9
@@ -65,7 +66,7 @@ output_image = pipeline.generate(
 )
 
 # Combine the input image and the output image into a single image.
-Image.fromarray(output_image).save("modified_first_sample.jpg")
+Image.fromarray(output_image).save("first_sample.jpg")
 
 
 

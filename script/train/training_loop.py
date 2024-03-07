@@ -1,7 +1,7 @@
 
 from transformers import CLIPTokenizer
 import argparse
-from train_pipeline import train
+from shared_train_pipeline import train
 """
 Input:
 
@@ -17,6 +17,8 @@ Output:
 """
 
 vocab_json_path = "D:/DDPM/Food-Vision/data/tokenizer_vocab.json"
+latent_path = "D:/DDPM/Food-Vision/latent_context/latent_tensor.npy"
+context_path = "D:/DDPM/Food-Vision/latent_context/context.npy"
 merge_file_path = "D:/DDPM/Food-Vision/data/tokenizer_merges.txt"
 model_file = "D:/DDPM/Food-Vision/data/v1-5-pruned-ema_only.ckpt"
 # Dataset Path For Image
@@ -41,6 +43,7 @@ def launch():
     args.unconditional_prompt = ""
     args.idle_device = "cpu"
     args.image_dataset_path = image_dataset_path
+    args.latent_file, args.context_file = latent_path, context_path
     args.excel_path = excel_path
     args.cfg_scale = 7
     args.lr = 3e-4
