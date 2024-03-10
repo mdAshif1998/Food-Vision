@@ -4,3 +4,5 @@ latent_context/
 .ipynb_checkpoints/
 .idea/
 __pycache__/
+token/
+gemma_prompt/
