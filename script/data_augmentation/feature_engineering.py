@@ -1,24 +1,40 @@
 import os
+
+import pandas as pd
 from groq import Groq
 from dotenv import load_dotenv
+from tqdm import tqdm
 
-
-load_dotenv(dotenv_path="Provide Path Here")
-
-prompt_for_common_ingredients_extraction = """
-What is the list of common ingredients from this list of raw input list "[{'text': '1 lb Ground beef'}, {'text': '40 oz kidney beans'}, {'text': '1 cooked Jasmine white rice (or your favorite )'}, {'text': '1 medium onion'}, {'text': '4 large large bell peppers'}, {'text': '1 garlic powder'}, {'text': '1 onion powder'}, {'text': '1 can can diced tomatoes ( fiery garlic or your choice )'}, {'text': '24 oz spaghetti sauce (I used garden vegetable )'}, {'text': '1 shredded cheese (sharp cheddar and 6 cheese blend)'}]"
-
-"""
+load_dotenv(dotenv_path="D:/DDPM/Food-Vision/token/.env.txt")
 client = Groq(api_key=os.getenv("groq_token"))
 
-completion = client.chat.completions.create(
-    messages=[{'role': 'user', 'content': prompt_for_common_ingredients_extraction}],
-    model='mixtral-8x7b-32768'
 
-)
+def generate_food_prompt(raw_ingredient):
+    food_prompt_prefix = """
+    Generate the array of comma separated common ingredients from this list of raw input list
+    """
+    return food_prompt_prefix + f''' "{raw_ingredient}"'''
 
-result = completion.choices[0].message.content
 
-print(result)
+def get_refined_common_ingredient(ingredient_prompt):
+    prompt_list = [{'role': 'user', 'content': ingredient_prompt}]
+    try:
+        completion = client.chat.completions.create(messages=prompt_list, model='mixtral-8x7b-32768')
 
+        result = completion.choices[0].message.content
+        return pd.Series([result, "Pass"], index=["common_ingredient", "status"])
+
+    except Exception as result_generation_exception:
+        return pd.Series(["", str(result_generation_exception)], index=["common_ingredient", "status"])
+
+
+if __name__ == '__main__':
+    raw_df = pd.read_excel("D:/DDPM/Food-Vision/gemma_prompt/preprocessed_ingredient.xlsx", engine="openpyxl")
+    raw_df = raw_df.head(100)
+    tqdm.pandas()
+    raw_df['food_prompt'] = raw_df["ingredients"].progress_apply(generate_food_prompt)
+    tqdm.pandas()
+    added_food_property = raw_df['food_prompt'].progress_apply(get_refined_common_ingredient)
+    final_food_df = pd.concat([raw_df, added_food_property], axis=1)
+    final_food_df.to_excel("D:/DDPM/Food-Vision/gemma_prompt/added_common_ingredient.xlsx", engine="openpyxl", index=False)
 
